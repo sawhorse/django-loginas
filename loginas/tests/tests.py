@@ -42,15 +42,17 @@ class ViewTest(TestCase):
                 self.client.cookies[settings.CSRF_COOKIE_NAME].value
         }
 
-    def get_target_url(self, target_user=None):
+    def get_target_url(self, target_user=None, next="/"):
         if target_user is None:
             target_user = self.target_user
+        data = self.get_csrf_token_payload()
+        data.update({'next': next})
         response = self.client.post(reverse("loginas-user-login",
             kwargs={'user_id': target_user.id}),
-            data=self.get_csrf_token_payload()
+            data=data
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(urlsplit(response['Location'])[2], "/")
+        self.assertEqual(urlsplit(response['Location'])[2], next)
         return response
 
     def assertCurrentUserIs(self, user):
@@ -162,3 +164,10 @@ class ViewTest(TestCase):
         url = reverse("loginas-user-login", kwargs={'user_id': '0'})
         r = self.client.post(url)
         self.assertEqual(r.status_code, 403)
+
+    def test_custom_redirect(self):
+        create_user("me", "pass", is_superuser=True, is_staff=True)
+        self.assertTrue(self.client.login(username="me", password="pass"))
+        response = self.get_target_url(next="/foo")
+        self.assertNotIn('messages', response.cookies)
+        self.assertEqual(urlsplit(response['Location'])[2], "/foo")

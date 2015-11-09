@@ -43,6 +43,7 @@ def _load_module(path):
 @require_POST
 def user_login(request, user_id):
     user = User.objects.get(pk=user_id)
+    next = request.POST.get("next", "/")
 
     CAN_LOGIN_AS = getattr(settings, "CAN_LOGIN_AS", lambda r, y: r.user.is_superuser)
     if isinstance(CAN_LOGIN_AS, six.string_types):
@@ -74,4 +75,4 @@ def user_login(request, user_id):
     session_flag = getattr(settings, "LOGINAS_FROM_USER_SESSION_FLAG", "loginas_from_user")
     request.session[session_flag] = original_user_pk
 
-    return redirect("/")
+    return redirect(next)
